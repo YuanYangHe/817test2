@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@android:anim/accelerate_interpolator" >
+
+    <!-- 定义透明度的变换 -->
+    <alpha
+        android:duration="700"
+        android:fromAlpha="0.05"
+        android:toAlpha="1" />
+    <!-- 定义缩放变换 -->
+    <scale
+        android:duration="700"
+        android:fillAfter="true"
+        android:fromXScale="2.5"
+        android:fromYScale="2.5"
+        android:pivotX="50%"
+        android:pivotY="50%"
+        android:toXScale="1.0"
+        android:toYScale="1.0" />
+
+</set>

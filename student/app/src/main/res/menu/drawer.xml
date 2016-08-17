@@ -1,0 +1,28 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/navigation_item_1"
+            android:icon="@drawable/chinese"
+            android:title="主選單"/>
+        <item
+            android:id="@+id/navigation_item_2"
+            android:icon="@drawable/english"
+            android:title="即時測驗"/>
+        <item
+            android:id="@+id/navigation_item_3"
+            android:icon="@drawable/math"
+            android:title="XXXX"/>
+        <item
+            android:id="@+id/navigation_item_4"
+            android:icon="@drawable/science"
+            android:title="XXXX"/>
+        <item
+            android:id="@+id/navigation_item_5"
+            android:icon="@drawable/socieity"
+            android:title="XXXX"/>
+        <item
+            android:id="@+id/navigation_item_6"
+            android:icon="@drawable/setting"
+            android:title="設定"/>
+    </group>
+</menu>
