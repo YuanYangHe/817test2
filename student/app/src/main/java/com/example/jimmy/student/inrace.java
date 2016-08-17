@@ -1,7 +1,10 @@
 package com.example.jimmy.student;
 
+import android.animation.ObjectAnimator;
+import android.animation.PropertyValuesHolder;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -36,7 +39,10 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
     Button a, b, c, d;
     BufferedReader brs;
     List<Map<String, Object>> lists = new ArrayList<Map<String, Object>>();
-    connectuse con;Socket soc;
+    connectuse con;
+    Socket soc;
+    PropertyValuesHolder pvhX, pvhY, pvhZ;
+    SharedPreferences settings;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,7 +78,7 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        ///
+        ////
         score = (TextView) findViewById(R.id.score);
         max = (TextView) findViewById(R.id.max);
         max.setText(String.valueOf(maxq = lists.size()));
@@ -89,9 +95,19 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
         question = (TextView) findViewById(R.id.Q);
         time = (TextView) findViewById(R.id.time);
         con = (connectuse) inrace.this.getApplication();
-        brs = con.getread();soc=con.getSocket();
+        brs = con.getread();
+        soc = con.getSocket();
         //////////////////
-        DBConnector.executeQuery("Insert into buffer(grade,saccount,testpfa) values('"+scores+"','"+con.accountname+"','"+accesspin+"')");
+        settings = getSharedPreferences("studentuse_pref", 0);
+        DBConnector.executeQuery("Insert into buffer(grade,saccount,testpfa) values('" + scores + "','" + settings.getString("account","XXX") + "','" + accesspin + "')");
+        ///
+        pvhX = PropertyValuesHolder.ofFloat("alpha", 1f,
+                0f, 1f);
+        pvhY = PropertyValuesHolder.ofFloat("scaleX", 1f,
+                2f, 1f);
+        pvhZ = PropertyValuesHolder.ofFloat("scaleY", 1f,
+                2f, 1f);
+        /////
     }
 
     public void set() {
@@ -119,7 +135,8 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
                 break;
             default:
                 break;
-        }chooseans="";
+        }
+        chooseans = "";
         down dd = new down();
         dd.start();
     }
@@ -134,17 +151,16 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
                 while (true) {
                     temp = brs.readLine();
                     Log.e("inthreafd", temp);
-                    handler.obtainMessage(1, temp).sendToTarget();
+                    handler.obtainMessage(1,  temp).sendToTarget();
                     if (temp.equals("0")) {
                         break;
-                    }else if(temp.contains("@_@"))
-                    {
+                    } else if (temp.contains("@_@")) {
                         handler.obtainMessage(2).sendToTarget();
                     }
                 }
                 jump();
             } catch (Exception e) {
-                Log.e("!!!WW!W!",e.toString());
+                Log.e("!!!WW!W!", e.toString());
             }
         }
     }
@@ -155,6 +171,7 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
             switch (msg.what) {
                 case 1:
                     time.setText(msg.obj.toString());
+                    ObjectAnimator.ofPropertyValuesHolder(time, pvhX, pvhY, pvhZ).setDuration(700).start();
                     break;
                 case 2:
                     Toast.makeText(inrace.this, "由於老師端問題 本次考試做廢", Toast.LENGTH_SHORT).show();
@@ -165,13 +182,14 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    Intent it=new Intent(inrace.this,inrealtime.class);
+                    Intent it = new Intent(inrace.this, inrealtime.class);
                     it.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     startActivity(it);
                     break;
             }
         }
     };
+
 
     public void onResume() {
         super.onResume();
@@ -183,7 +201,7 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
         Bundle bd = new Bundle();
         bd.putInt("now", now);
         bd.putInt("max", maxq);
-        bd.putString("pfa",accesspin);
+        bd.putString("pfa", accesspin);
         it.putExtras(bd);
         startActivity(it);
     }
@@ -234,11 +252,12 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
             if (chooseans.equals(realans)) {
                 scores += 100;
             }
-            DBConnector.executeQuery("update buffer set grade='"+scores+"'  where testpfa='"+accesspin+"' and saccount='"+con.accountname+"'");
+            DBConnector.executeQuery("update buffer set grade='" + scores + "'  where testpfa='" + accesspin + "' and saccount='" + settings.getString("account","XXX") + "'");
 
         }
 
     }
+
     public void dia() {
         new AlertDialog.Builder(inrace.this)
                 .setTitle("警告")
@@ -246,7 +265,7 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
                 .setPositiveButton("是", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        DBConnector.executeQuery("delete from buffer where testpfa='" + accesspin + "' and saccount='"+con.accountname+"'");
+                        DBConnector.executeQuery("delete from buffer where testpfa='" + accesspin + "' and saccount='" + settings.getString("account","XXX") + "'");
                         try {
                             soc.close();
                         } catch (IOException e) {
@@ -265,6 +284,7 @@ public class inrace extends AppCompatActivity implements View.OnClickListener {
                 }).show();
 
     }
+
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
         if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {   //確定按下退出鍵and防止重複按下退出鍵

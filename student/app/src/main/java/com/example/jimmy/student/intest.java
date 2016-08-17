@@ -1,21 +1,25 @@
 package com.example.jimmy.student;
 
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Handler;
 import android.os.StrictMode;
-import android.support.v4.app.Fragment;
-import android.support.v4.view.ViewPager;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.Button;
+import android.view.animation.RotateAnimation;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,24 +27,38 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class intest extends AppCompatActivity implements ViewPager.OnPageChangeListener {
-    private ViewPager viewPager;
-    private ArrayList<Fragment> fragments;
-    List<Map<String, Object>> lists = new ArrayList<Map<String, Object>>();
+public class intest extends AppCompatActivity {
     String accesspin;
-    MyTestAdapter myTestAdapter;
-    Button b6;
-    TextView max, num;
-
+    FloatingActionButton fab;
+    private RecyclerView recyclerView;
+    private MyTestAdapter adapter;
+    ////
+    List<Map<String, Object>> lists = new ArrayList<Map<String, Object>>();
+    List<MyTestAdapter.DataHolder> forans = new ArrayList<>();
+    ProgressBar pg;
+    int TIME = 0;//30秒
+    TextView time, timemin;
+    ImageView img;
+    ///
+    Socket soc;
+    SharedPreferences settings;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_startanimate);
+        connectuse con = (connectuse) intest.this.getApplication();
+        soc = con.getSocket();
+        Intent it = getIntent();
+        accesspin = it.getStringExtra("accesspin");
+        Log.e("!!!!!!!!!!!!!!!!!!!!!", "inin");
+        settings = getSharedPreferences("studentuse_pref", 0);
         ////
         StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
                 .detectAll()
@@ -54,12 +72,13 @@ public class intest extends AppCompatActivity implements ViewPager.OnPageChangeL
                 .build());
         ////
         animate();
+        Log.e("!!", "222");
+
     }
-    public void animate()
-    {
+
+    public void animate() {
         //剛開始先有動畫
-        Intent it=getIntent();
-        accesspin=it.getStringExtra("accesspin");
+
         final ImageView image = (ImageView) findViewById(R.id.imageView);
         final Animation anim = AnimationUtils.loadAnimation(this,
                 R.anim.animate);
@@ -85,11 +104,15 @@ public class intest extends AppCompatActivity implements ViewPager.OnPageChangeL
         });
         new CountDownTimer(4200, 1000) {
             int count = 0;
+
             @Override
             public void onFinish() {
                 setContentView(R.layout.activity_intest);
+                Log.e("!!", "111");
                 next();
+                forbar();
             }
+
             @Override
             public void onTick(long millisUntilFinished) {
                 switch (count) {
@@ -111,134 +134,230 @@ public class intest extends AppCompatActivity implements ViewPager.OnPageChangeL
                         break;
                     default:
                         break;
-                }count++;
+                }
+                count++;
             }
         }.start();//動畫CODE到此
     }
-    public void next()
-    {
-        b6 = (Button) findViewById(R.id.button6);
-        Intent it=getIntent();
-        accesspin=it.getStringExtra("accesspin");
 
-             /////
-        String result = DBConnector.executeQuery("SELECT question.question,question.A,question.B,question.C,question.D,question.ans FROM record,testlist,question,testinside WHERE record.pinforaccess='"+accesspin+"' AND record.pinfortest=testlist.KEYIN AND testlist.num=testinside.testtitleid and testinside.questionid=question.id");
+    public void next() {
+        Intent it = getIntent();
+        accesspin = it.getStringExtra("accesspin");
+        TIME = it.getExtras().getInt("sec") * 10;
+        ////
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
+        adapter = new MyTestAdapter(lists, forans, intest.this);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setAdapter(adapter);
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                RecyclerView.LayoutManager layoutManager = recyclerView.getLayoutManager();
+                if (layoutManager instanceof LinearLayoutManager) {
+                    LinearLayoutManager linearManager = (LinearLayoutManager) layoutManager;
+                    //获取最后一个可见view的位置
+                    int lastItemPosition = linearManager.findLastVisibleItemPosition();
+                    //获取第一个可见view的位置
+                    int firstItemPosition = linearManager.findFirstVisibleItemPosition();
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE && lastItemPosition + 1 == adapter.getItemCount()) {
+                        //最后一个itemView的position为adapter中最后一个数据时,说明该itemView就是底部的view了
+                        //需要注意position从0开始索引,adapter.getItemCount()是数据量总数
+                        fab.setVisibility(View.VISIBLE);
+                        Toast.makeText(intest.this, "滑动到底了", Toast.LENGTH_SHORT).show();
+                    }
+                    //同理检测是否为顶部itemView时,只需要判断其位置是否为0即可
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE && firstItemPosition == 0) {
+                        Toast.makeText(intest.this, "滑动到頂了", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+            }
+
+        });
+        /////
+
+
+        String result = DBConnector.executeQuery("SELECT question.question,question.A,question.B,question.C,question.D,question.ans FROM record,testlist,question,testinside WHERE record.pinforaccess='" + accesspin + "' AND record.pinfortest=testlist.KEYIN AND testlist.num=testinside.testtitleid and testinside.questionid=question.id");
         try {
             JSONArray jsonArray = new JSONArray(result);
             for (int i = 0; i < jsonArray.length(); i++) {
                 Map<String, Object> map = new HashMap<String, Object>();
+                MyTestAdapter.DataHolder d = new MyTestAdapter.DataHolder();
+                d.ans = "X";
+                forans.add(d);
                 JSONObject jsonData = jsonArray.getJSONObject(i);
                 map.put("Q", jsonData.getString("question"));
                 map.put("A", jsonData.getString("A"));
                 map.put("B", jsonData.getString("B"));
                 map.put("C", jsonData.getString("C"));
                 map.put("D", jsonData.getString("D"));
-                map.put("ans",jsonData.getString("ans"));
+                map.put("ans", jsonData.getString("ans"));
                 lists.add(map);
             }
         } catch (JSONException e) {
             e.printStackTrace();
         }
-        max = (TextView) findViewById(R.id.max);
-        max.setText(String.valueOf(lists.size()));
-        num = (TextView) findViewById(R.id.num);
-        viewPager = (ViewPager) findViewById(R.id.viewpager);
-        fragments = new ArrayList<Fragment>();
-        TestFragments fragmentItem;
+        ///
+
+
+    }
+
+    public void forbar() {
+
+        time = (TextView) findViewById(R.id.textView);
+        timemin = (TextView) findViewById(R.id.textView8);
+        pg = (ProgressBar) findViewById(R.id.progressbar);
+        img = (ImageView) findViewById(R.id.imageView);
+        pg.setMax(TIME);
+        pg.incrementProgressBy(+TIME);
+        if (TIME != 18000) {
+            final Animation am = new RotateAnimation(0, 180, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+            am.setDuration(2500);
+            am.setFillAfter(true);
+            final Animation am1 = new RotateAnimation(180, 360, Animation.RELATIVE_TO_SELF, 0.5f, Animation.RELATIVE_TO_SELF, 0.5f);
+            am1.setDuration(2500);
+            am1.setFillAfter(true);
+            am.setAnimationListener(new Animation.AnimationListener() {
+                @Override
+                public void onAnimationStart(Animation animation) {
+
+                }
+
+                @Override
+                public void onAnimationEnd(Animation animation) {
+                    img.setAnimation(am1);
+                    am1.startNow();
+                }
+
+                @Override
+                public void onAnimationRepeat(Animation animation) {
+
+                }
+            });
+            setProgressBarVisibility(true);
+            final Handler h = new Handler();
+            final Runnable callback1 = new Runnable() {
+                @Override
+                public void run() {
+                    if (pg.getProgress() % 50 == 0) {
+                        img.setAnimation(am);
+                        am.startNow();
+                    }
+
+                    if (pg.getProgress() % 600 == 0) {
+                        timemin.setText(String.valueOf(pg.getProgress() / 600 - 1));
+                    } else {
+                        time.setText(String.valueOf((pg.getProgress() - pg.getProgress() / 600 * 600) / 10.));
+                    }
+                    pg.incrementProgressBy(-1);
+                    setProgress(pg.getProgress() * 100);
+                }
+            };
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    Log.e("PRO", String.valueOf(TIME));
+                    //pg.setMax(TIME);
+                   // pg.incrementProgressBy(+TIME);
+                    timemin.setText(String.valueOf(TIME / 600));
+                    while (true) {
+                        if (pg.getProgress() == 0) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    end();
+                                }
+                            });
+                            break;
+                        }
+                        try {
+                            h.post(callback1);
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }).start();
+
+        }else {//如果unlimit
+            TextView dot=(TextView)findViewById(R.id.textView9);
+            dot.setVisibility(View.GONE);timemin.setVisibility(View.GONE);
+            time.setText("unlimit");
+        }
+
+    }
+
+
+    public void fabc(View v) {
+        end();
+    }
+
+    public void end() {
+        double grade = 0;
         for (int i = 0; i < lists.size(); i++) {
-            fragmentItem = new TestFragments(intest.this, i, lists.get(i));
-            fragments.add(fragmentItem);
-        }
-        myTestAdapter = new MyTestAdapter(getSupportFragmentManager(), fragments);
-        viewPager.setAdapter(myTestAdapter);
-        viewPager.setCurrentItem(0);
-        viewPager.addOnPageChangeListener(this);
-        initDots();
-    }
-    private ImageView[] dotViews;
-    private void initDots() {
-        LinearLayout layout = (LinearLayout) findViewById(R.id.zzz);
-        LinearLayout.LayoutParams mParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        mParams.setMargins(10, 0, 10, 0);//设置小圆点左右之间的间隔
-        int dotsize;
-        if (lists.size() > 5) {
-            dotsize = 5;
-        } else dotsize = lists.size();
-        dotViews = new ImageView[dotsize];
-        for (int i = 0; i < dotsize; i++) {
-            ImageView imageView = new ImageView(this);
-            imageView.setLayoutParams(mParams);
-            imageView.setImageResource(R.drawable.dot_selector);
-            if (i == 0) {
-                imageView.setSelected(true);//默认启动时，选中第一个小圆点
+            if (forans.get(i).ans.equals(lists.get(i).get("ans"))) {
+                grade += (100. / (lists.size()));
+                Log.e(forans.get(i).ans.toString(), String.valueOf(((int) grade)));
             } else {
-                imageView.setSelected(false);
+                String x = DBConnector.executeQuery("insert into ansrecord(testpfa,saccount,wrongqnum,answer) values('" + accesspin + "','" + settings.getString("account","XXX") + "','" + (i + 1) + "','" + forans.get(i).ans.toString() + "')");
             }
-            dotViews[i] = imageView;//得到每个小圆点的引用，用于滑动页面时，（onPageSelected方法中）更改它们的状态。
-            layout.addView(imageView);//添加到布局里面显示
+            Log.e(forans.get(i).toString(), lists.get(i).get("ans").toString());
         }
-    }
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_intest, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        String x = DBConnector.executeQuery("insert into grade(testpfa,saccount,grade) values('" + accesspin + "','" + settings.getString("account","XXX") + "','" + grade + "')");
+        Toast.makeText(this, String.valueOf((int) grade) + settings.getString("account","XXX"), Toast.LENGTH_SHORT).show();
+        try {
+            soc.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        return super.onOptionsItemSelected(item);
+        Intent it = new Intent(intest.this, inrealtime.class);
+        it.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(it);
     }
 
-    @Override
-    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-        for (int i = 0; i < dotViews.length; i++) {
-            if (position % 5 == i) {
-                dotViews[i].setSelected(true);
-            } else {
-                dotViews[i].setSelected(false);
-            }
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {   //確定按下退出鍵and防止重複按下退出鍵
+            dia();
         }
+        return false;
     }
 
-    @Override
-    public void onPageSelected(int position) {
-        if (position == lists.size() - 1) {
-            b6.setVisibility(View.VISIBLE);
-        }
-        num.setText(String.valueOf(position + 1));
-    }
+    public void dia() {
+        new AlertDialog.Builder(intest.this)
+                .setTitle("警告")
+                .setMessage("是否要離開測驗(將會使此次測驗失效)")
+                .setPositiveButton("是", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        DBConnector.executeQuery("delete from buffer where testpfa='" + accesspin + "'");
+                        DBConnector.executeQuery("delete from record where pinforaccess='" + accesspin + "'");
+                        try {
+                            soc.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        Intent it = new Intent(intest.this, inpinreal.class);
+                        it.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(it);
+                    }
+                })
+                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
 
-    @Override
-    public void onPageScrollStateChanged(int state) {
-
-    }
-    public void oc(View v) {
-        ArrayList ans = new ArrayList<String>();
-        double grade=0;
-        for (int i = 0; i < lists.size(); i++) {
-            if(myTestAdapter.getItem(i).getArguments().get("ans").equals(lists.get(i).get("ans")))
-            {
-                grade+=(100./(lists.size()));
-                Log.e(myTestAdapter.getItem(i).getArguments().get("ans").toString(), String.valueOf(((int) grade)));
-            }
-
-
-            ans.add(myTestAdapter.getItem(i).getArguments().get("ans"));
-        }
-        //String x=DBConnector.executeQuery("insert into grade(saccount,grade,testpfa) values('"++"')")
-        connectuse c=(connectuse)intest.this.getApplication();
-        Toast.makeText(this, String.valueOf((int) grade)+c.accountname, Toast.LENGTH_SHORT).show();
+                    }
+                }).show();
 
     }
 }

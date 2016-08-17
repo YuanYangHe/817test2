@@ -1,6 +1,5 @@
 package com.example.jimmy.student;
 
-import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
@@ -9,44 +8,22 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 public class register extends AppCompatActivity {
     EditText acc, pwd, email, phones;
-    TextView logo, account,password,email_t,phone ;
-    Typeface typeFace,typeFace2;//設定字型
-    String[] Textname = {"fonts/ARDESTINE.ttf","fonts/ARBERKLEY.ttf",
-            "fonts/segoesc.ttf","fonts/segoescb.ttf","fonts/MTCORSVA.TTF",
-            "fonts/BrushScriptStd.otf","fonts/ChineseW3.ttc"};//設定字型
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Utils.onActivityCreateSetTheme(this);
         setContentView(R.layout.activity_register);
         acc = (EditText) findViewById(R.id.editText3);
         pwd = (EditText) findViewById(R.id.editText4);
         email = (EditText) findViewById(R.id.editText5);
         phones = (EditText) findViewById(R.id.editText6);
-        set_typeface();//設定字型函式
     }
-    public void set_typeface(){  //設定字型函式
 
-        logo = (TextView) findViewById(R.id.textView2);
-        account = (TextView) findViewById(R.id.account);
-        password = (TextView) findViewById(R.id.password);
-        email_t = (TextView) findViewById(R.id.email);
-        phone = (TextView) findViewById(R.id.phone);
-        typeFace = Typeface.createFromAsset(getAssets(),Textname[5]);
-        typeFace2 = Typeface.createFromAsset(getAssets(),Textname[6]);
-        logo.setTypeface(typeFace);
-        account.setTypeface(typeFace2);
-        phone.setTypeface(typeFace2);
-        password.setTypeface(typeFace2);
-        email_t.setTypeface(typeFace2);
-    }
     public void back(View v) {
         finish();
     }

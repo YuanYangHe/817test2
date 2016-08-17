@@ -2,15 +2,23 @@ package com.example.jimmy.student;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Message;
+import android.support.v4.util.LruCache;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,25 +28,33 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
+import java.net.URL;
+import java.nio.charset.MalformedInputException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ranking extends AppCompatActivity {
     int max = 0;
     int now = 0;
     BufferedReader brs;
     String pfa;
-    List<adapterforrank.DataHolder> items = new ArrayList<>();
+    Handler mHandler;
+    HandlerThread mHandlerThread;
+    MyAdapter mAdapter;
     ListView lv;
-    private adapterforrank adt;
+    List<Map<String, Object>> lists = new ArrayList<Map<String, Object>>();private LruCache<String, Bitmap> mLruCache;
     Socket soc;
     connectuse con;
-
+    SharedPreferences settings;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ranking);
+        settings = getSharedPreferences("studentuse_pref", 0);
         Bundle bd = getIntent().getExtras();
         max = bd.getInt("max");
         now = bd.getInt("now");
@@ -53,10 +69,23 @@ public class ranking extends AppCompatActivity {
         listen ls = new listen();
         ls.start();
         /////
-        lv = (ListView) findViewById(R.id.listView);
+
+        mHandlerThread = new HandlerThread("LRU Cache Handler");
+        mHandlerThread.start();
+        mHandler = new Handler(mHandlerThread.getLooper());
+        int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
+        int cacheSize = maxMemory / 2;
+
+        mLruCache = new LruCache<String, Bitmap>(cacheSize) {
+            @Override
+            protected int sizeOf(String key, Bitmap value) {
+                return value.getByteCount() / 1024;
+            }
+        };
         getdata();
-        adt = new adapterforrank(this, items);
-        lv.setAdapter(adt);
+        lv = (ListView) findViewById(R.id.listView);
+        mAdapter = new MyAdapter();
+        lv.setAdapter(mAdapter);
     }
 
     class listen extends Thread {
@@ -79,7 +108,7 @@ public class ranking extends AppCompatActivity {
         }
     }
 
-    Handler handler = new Handler() {
+   Handler handler = new Handler() {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
@@ -121,38 +150,19 @@ public class ranking extends AppCompatActivity {
         try {
             JSONArray jsonArray = new JSONArray(result);
             for (int i = 0; i < jsonArray.length(); i++) {
+                Map<String, Object> map = new HashMap<String, Object>();
                 JSONObject jsonData = jsonArray.getJSONObject(i);
-                adapterforrank.DataHolder item = new adapterforrank.DataHolder();
-                item.score = jsonData.getInt("grade");
-                item.studentid = jsonData.getString("saccount");
-                items.add(item);
+                map.put("score", jsonData.getInt("grade"));
+                map.put("studentid", jsonData.getString("saccount"));
+                map.put("url", "http://192.168.100.2/uploads/s" + jsonData.getString("saccount") + ".png");
+                lists.add(map);
             }
         } catch (Exception e) {
             Log.e("log_tag", e.toString());
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_ranking, menu);
-        return true;
-    }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
 
     public boolean onKeyDown(int keyCode, KeyEvent event) {
 
@@ -169,7 +179,7 @@ public class ranking extends AppCompatActivity {
                 .setPositiveButton("是", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        DBConnector.executeQuery("delete from buffer where testpfa='" + pfa + "' and saccount='" + con.accountname + "'");
+                        DBConnector.executeQuery("delete from buffer where testpfa='" + pfa + "' and saccount='" + settings.getString("account","XXX") + "'");
                         try {
                             soc.close();
                         } catch (IOException e) {
@@ -188,4 +198,117 @@ public class ranking extends AppCompatActivity {
                 }).show();
 
     }
+    //////////////////
+    private class MyAdapter extends BaseAdapter {
+        private Map<String, String> mLoadingMap;
+
+        public MyAdapter() {
+            mLoadingMap = new HashMap<String, String>();
+        }
+
+        @Override
+        public int getCount() {
+            return lists.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return null;
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(final int position, View convertView, ViewGroup parent) {
+            View v = convertView;
+            final Holder holder;
+            if (null == v) {
+                v = LayoutInflater.from(ranking.this).inflate(R.layout.itemforrank, null);
+                holder = new Holder();
+                holder.no = (TextView) v.findViewById(R.id.ininno);
+                holder.img = (ImageView) v.findViewById(R.id.ininimg);
+                holder.title = (TextView) v.findViewById(R.id.inintitle);
+                holder.score = (TextView) v.findViewById(R.id.score);
+                v.setTag(holder);
+            } else {
+                holder = (Holder) v.getTag();
+            }
+            holder.img.setImageResource(R.drawable.zzz);
+            holder.title.setText(lists.get(position).get("studentid").toString());
+            holder.no.setText(String.valueOf(position + 1));
+            holder.score.setText(lists.get(position).get("score").toString());
+            final String key = position + "_cache";
+            Bitmap b = mLruCache.get(key);
+            if (b == null && !mLoadingMap.containsKey(key)) {
+                mLoadingMap.put(key, lists.get(position).get("url").toString());
+                Log.e("lru", "load pic" + position);
+                mHandler.post(new Runnable() {
+                    Bitmap bmp;
+
+                    @Override
+                    public void run() {
+                        bmp = decodeBitmap(lists.get(position).get("url").toString(), 200);
+                        if (bmp != null) {
+                            mLruCache.put(key, bmp);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    notifyDataSetChanged();
+                                    mLoadingMap.remove(key);
+                                }
+                            });
+                        }
+
+                    }
+                });
+            } else {
+                Log.e("lru", "cache");
+                holder.img.setImageBitmap(b);
+            }
+            return v;
+        }
+
+        class Holder {
+            TextView no, title, score;
+            ImageView img;
+        }
+    }
+
+    public static int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        // Raw height and width of image
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width
+            while ((halfHeight / inSampleSize) > reqHeight
+                    && (halfWidth / inSampleSize) > reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+        return inSampleSize;
+    }
+
+    public static Bitmap decodeBitmap(String url, int maxWidth) {
+        Bitmap bitmap = null;
+        try {
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            options.inSampleSize = calculateInSampleSize(options, maxWidth, maxWidth);
+            InputStream is = (InputStream) new URL(url).getContent();
+            bitmap = BitmapFactory.decodeStream(is, null, options);
+        } catch (MalformedInputException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bitmap;
+    }
+
 }

@@ -2,26 +2,22 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/navigation_item_1"
-            android:icon="@drawable/chinese"
+            android:icon="@drawable/home1"
             android:title="主選單"/>
         <item
             android:id="@+id/navigation_item_2"
-            android:icon="@drawable/english"
+            android:icon="@drawable/pen1"
             android:title="即時測驗"/>
         <item
             android:id="@+id/navigation_item_3"
-            android:icon="@drawable/math"
-            android:title="XXXX"/>
+            android:icon="@drawable/search"
+            android:title="查詢成績"/>
         <item
             android:id="@+id/navigation_item_4"
-            android:icon="@drawable/science"
+            android:icon="@drawable/search"
             android:title="XXXX"/>
         <item
             android:id="@+id/navigation_item_5"
-            android:icon="@drawable/socieity"
-            android:title="XXXX"/>
-        <item
-            android:id="@+id/navigation_item_6"
             android:icon="@drawable/setting"
             android:title="設定"/>
     </group>
