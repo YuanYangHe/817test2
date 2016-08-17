@@ -4,7 +4,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="title_activity_register">register</string>
-    <string name="title_activity_list">MagicDranty</string>
+    <string name="title_activity_list">list</string>
     <string name="openDrawer">OOOOOPPPPPEEEENNNN</string>
     <string name="closeDrawer">CCCLLLOOOSSSEEE</string>
     <string name="title_activity_inrealtime">inrealtime</string>
@@ -14,11 +14,20 @@
     <string name="title_activity_startanimate">startanimate</string>
     <string name="title_activity_inrace">inrace</string>
     <string name="title_activity_ranking">ranking</string>
-    <string name="title_activity_settings">settings</string>
-
-
-    <string-array name="theme_array">
-        <item>Basic_style</item>
-        <item>blue</item>
+    <string name="title_activity_forgrade">forgrade</string>
+    <string-array name="sorts">
+        <item>預設(不分類)</item>
+        <item>國文</item>
+        <item>英文</item>
+        <item>數學</item>
+        <item>自然</item>
+        <item>社會</item>
+        <item>其他</item>
     </string-array>
+    <string name="title_activity_forgrade1">forgrade1</string>
+    <string name="title_activity_forgrade1_5">forgrade1_5</string>
+    <string name="title_activity_intestanother">intestanother</string>
+    <string name="title_activity_fixhead">fixhead</string>
+    <string name="title_activity_selftest">selftest</string>
+    <string name="title_activity_inselftest">inselftest</string>
 </resources>

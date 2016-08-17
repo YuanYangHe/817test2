@@ -13,7 +13,8 @@
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="59dp"
+        android:gravity="center">
 
         <TextView
             android:layout_width="wrap_content"
@@ -51,14 +52,15 @@
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:text="time"
             android:id="@+id/time"
-            android:gravity="right"
+            android:gravity="center_horizontal"
             android:layout_weight="1" />
     </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="100dp"
-        android:id="@+id/scrollView">
+        android:id="@+id/scrollView"
+        android:layout_weight="0.20">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="80dp"
