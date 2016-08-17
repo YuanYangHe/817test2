@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources >
+    <style name="Basic_style" >
+        <item name="pageBackground">@style/background_basic</item>
+        <item name="my_button">@style/Button_basic</item>
+        <item name="my_edittext">@style/edittext_basic</item>
+        <item name="my_textview">@style/textview_basic</item>
+    </style>
+    <style name="blue" >
+        <item name="pageBackground">@style/background_blue</item>
+        <item name="my_button">@style/Button_blue</item>
+        <item name="my_edittext">@style/edittext_blue</item>
+        <item name="my_textview">@style/textview_blue</item>
+    </style>
+</resources>

@@ -1,19 +1,19 @@
 package com.example.jimmy.student;
 
+import android.app.ActionBar;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.os.StrictMode;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,41 +21,37 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 public class MainActivity extends AppCompatActivity {
     TextView tv;
     EditText acc, pwd;
-    connectuse x;String sacc,net;
+    Button bt;
+    Typeface typeFace;//設定字型
+    String[] Textname = {"fonts/ARDESTINE.ttf","fonts/ARBERKLEY.ttf",
+            "fonts/segoesc.ttf","fonts/segoescb.ttf","fonts/MTCORSVA.TTF",
+            "fonts/BrushScriptStd.otf"};//設定字型
+    public static final String KEY = "com.my.package.app";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //===========================================================
+        SharedPreferences settings = getApplication().getSharedPreferences(KEY, Context.MODE_PRIVATE);
+        Utils.change_sTheme(settings.getInt("THEMES",0));
+        connectuse.currentPosition = settings.getInt("THEMES",0);
+        //===========================================================
+        Utils.onActivityCreateSetTheme(this);
         setContentView(R.layout.activity_main);
-        tv = (TextView) findViewById(R.id.textView);
-
+        typeFace = Typeface.createFromAsset(getAssets(),Textname[5]);   //設定字型
+        tv = (TextView) findViewById(R.id.textView); //設定字型
         acc = (EditText) findViewById(R.id.editText);
         pwd = (EditText) findViewById(R.id.e2);
-        StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder()
-                .detectDiskReads()
-                .detectDiskWrites()
-                .detectNetwork()
-                .penaltyLog()
-                .build());
-        StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
-                .detectLeakedSqlLiteObjects()
-                .penaltyLog()
-                .penaltyDeath()
-                .build());
-        //
-        x=(connectuse)MainActivity.this.getApplicationContext();
-        SharedPreferences settings = getSharedPreferences("studentuse_pref", 0);
-        acc.setText(settings.getString("account","XXX"));
-        pwd.setText(settings.getString("password",""));
+        bt = (Button) findViewById(R.id.button);
+        bt.setTypeface(typeFace);   //設定字型
+        tv.setTypeface(typeFace);   //設定字型
+
+
     }
     public void login(View v) {
+        Log.e("123","qwqwq");
         Thread thread = new Thread() {
             Bundle bundle = new Bundle();
             Message msg = new Message();
@@ -73,15 +69,10 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         JSONArray jsonArray = new JSONArray(result);
                         JSONObject jsonData = jsonArray.getJSONObject(0);
-                        SharedPreferences settings = getSharedPreferences("studentuse_pref", 0);
-                        SharedPreferences.Editor editor = settings.edit();
-                        editor.putString("account", sacc=jsonData.getString("account"));
-                        editor.putString("password",jsonData.getString("pwd"));
-                        editor.putString("email", jsonData.getString("email"));
-                        editor.putString("net",net="192.168.100.5");
-                        editor.commit();
-                        headuse h = new headuse();
-                        h.start();
+                        connectuse x=(connectuse)MainActivity.this.getApplicationContext();
+                        x.accountname=jsonData.getString("account");
+                        x.email=jsonData.getString("email");
+                        mhandler.obtainMessage(1).sendToTarget();
                     } catch (Exception e) {
                         Log.e("log_tag", e.toString());
                     }
@@ -100,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
             switch(msg.what)
             {
                 case 1:
-                    Intent it = new Intent(MainActivity.this, inrealtime.class);
+                    Intent it = new Intent(MainActivity.this, list.class);
                     startActivity(it);
                     break;
                 case 2:
@@ -138,28 +129,5 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
-    }
-    class headuse extends Thread {
-        public void run() {
-            String imageUrl = ("http://"+net+"/uploads/"+"s"+sacc+".png");
-            try {
-                Log.e("!@!@!@", imageUrl);
-                URL url = new URL(imageUrl);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.connect();
-                int status = connection.getResponseCode();
-                if (status == 404) {
-                    Resources res = getResources();
-                    x.b= BitmapFactory.decodeResource(res, R.drawable.zzz);
-                } else {
-                    InputStream input = connection.getInputStream();
-                    final Bitmap b = BitmapFactory.decodeStream(input);
-                    x.b = b;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            mhandler.obtainMessage(1).sendToTarget();
-        }
     }
 }
